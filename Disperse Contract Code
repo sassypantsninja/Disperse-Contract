@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Disperse {
+    address public owner;
+
+    event Dispersed(address indexed sender, uint256 totalAmount, uint256 numberOfRecipients);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the contract owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // Function to disperse Ether to multiple addresses
+    function disperseEther(address[] calldata recipients, uint256[] calldata values) external payable {
+        require(recipients.length == values.length, "Mismatched input arrays");
+
+        uint256 total = 0;
+        for (uint256 i = 0; i < values.length; i++) {
+            total += values[i];
+        }
+
+        require(msg.value == total, "Incorrect Ether amount");
+
+        for (uint256 i = 0; i < recipients.length; i++) {
+            payable(recipients[i]).transfer(values[i]);
+        }
+
+        emit Dispersed(msg.sender, total, recipients.length);
+    }
+
+    // Function to disperse ERC20 tokens to multiple addresses
+    function disperseToken(address token, address[] calldata recipients, uint256[] calldata values) external {
+        require(recipients.length == values.length, "Mismatched input arrays");
+
+        for (uint256 i = 0; i < recipients.length; i++) {
+            require(IERC20(token).transferFrom(msg.sender, recipients[i], values[i]), "Transfer failed");
+        }
+
+        emit Dispersed(msg.sender, 0, recipients.length);
+    }
+
+    // Fallback function to receive Ether
+    receive() external payable {}
+}
+
+// Minimal ERC20 interface
+interface IERC20 {
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+}
