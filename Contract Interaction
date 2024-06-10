@@ -1,0 +1,47 @@
+const Web3 = require('web3');
+require('dotenv').config();
+
+const web3 = new Web3(new Web3.providers.HttpProvider(process.env.INFURA_URL));
+
+const account = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY);
+web3.eth.accounts.wallet.add(account);
+
+const contractAddress = 'DEPLOYED_CONTRACT_ADDRESS';
+const abi = JSON.parse('YOUR_CONTRACT_ABI');
+const contract = new web3.eth.Contract(abi, contractAddress);
+
+(async () => {
+    // Addresses to disperse Ether to
+    const recipients = ['0xRecipientAddress1', '0xRecipientAddress2', '0xRecipientAddress3'];
+    // Corresponding values to send (in wei)
+    const values = [web3.utils.toWei('0.1', 'ether'), web3.utils.toWei('0.2', 'ether'), web3.utils.toWei('0.3', 'ether')];
+
+    const disperseTx = contract.methods.disperseEther(recipients, values);
+    const gas = await disperseTx.estimateGas({ from: account.address, value: web3.utils.toWei('0.6', 'ether') });
+    const gasPrice = await web3.eth.getGasPrice();
+
+    await disperseTx.send({
+        from: account.address,
+        gas,
+        gasPrice,
+        value: web3.utils.toWei('0.6', 'ether')
+    });
+
+    console.log('Ether dispersed');
+
+    // Example for dispersing tokens (using a fictional ERC20 token contract)
+    const tokenAddress = '0xYourTokenAddress';
+    const tokenValues = [web3.utils.toWei('10', 'ether'), web3.utils.toWei('20', 'ether'), web3.utils.toWei('30', 'ether')];
+
+    const disperseTokenTx = contract.methods.disperseToken(tokenAddress, recipients, tokenValues);
+    const gasToken = await disperseTokenTx.estimateGas({ from: account.address });
+    const gasPriceToken = await web3.eth.getGasPrice();
+
+    await disperseTokenTx.send({
+        from: account.address,
+        gas: gasToken,
+        gasPrice: gasPriceToken
+    });
+
+    console.log('Tokens dispersed');
+})();
